@@ -4,6 +4,7 @@ declare const Parse: any;
 import './generated/evmApi';
 import './generated/solApi';
 import { requestMessage } from '../auth/authService';
+import Moralis from 'moralis';
 
 Parse.Cloud.define('requestMessage', async ({ params }: any) => {
   const { address, chain, networkType } = params;
@@ -27,11 +28,12 @@ Parse.Cloud.define('getServerTime', () => {
   return null;
 });
 
-//MY CLOUD CODE
-Parse.Cloud.define("posts", async (request) => {
+//MY CODE STRTS HERE
+Parse.Cloud.define("posts", async (request:any) => {
     //Loads 10 Posts each time User gets close to the bottom. projects will have something similar too.
     //ALSO WE HAVE TO LOAD POSTS RELATED TO PROJECTS THE USER WAS WATCHING
   const Posts = new Parse.Query('Posts');
+
   if((request.params.user == undefined || request.params.user == '') && request.params.project == undefined){ Posts.containedIn("tags", request.params.tags);} //for loading posts related to certain tags
   else if(request.params.project) Posts.equalTo('referredTo', request.params.project); //for loading posts related to a project
   else if(request.params.user != request.params.me) Posts.equalTo('idu', request.params.user); //for loading posts related to a single user
@@ -48,9 +50,9 @@ Parse.Cloud.define("posts", async (request) => {
 
   const ime = new Parse.Query('users');
   ime.equalTo('user', request.params.me);
-  me = await ime.first();
+  const me = await ime.first();
   
-  let newposts = [];
+  let newposts:Array<object> = [];
   for(let i = 0; i < results.length; i++) {
     //It will skip the posts that already exist. i.e 10 by 10
     const contents = results[i].get('contents');
@@ -71,7 +73,7 @@ Parse.Cloud.define("posts", async (request) => {
     qcomments.equalTo("post", results[i].id);
     const qrr = await qcomments.first();
     
-    let cdata = {};
+    let cdata:object = {};
     //query for that single comment. maybe i will remove this. it wastes time and precious data
     if(qrr != undefined){
 
@@ -89,8 +91,8 @@ Parse.Cloud.define("posts", async (request) => {
 );
 
 //Main Post load.
-Parse.Cloud.define("loadcomments", async (request) => {
-  let allcomments = [];
+Parse.Cloud.define("loadcomments", async (request:any) => {
+  let allcomments:Array<object> = [];
   const qcomments = new Parse.Query("Comments");
   qcomments.equalTo("post", request.params.post);
   qcomments.descending('createdAt');
@@ -108,15 +110,14 @@ Parse.Cloud.define("loadcomments", async (request) => {
       let liked = '';
       if(likes.indexOf(me.get('username')) > -1){ liked = 'lq'}
       
-      if(likestc.get('username') == me.get('username')){}
-      allcomments.push({id:qrr[c].id, createdat:qrr[c].createdAt, userid:qrr[c].get('idu'), user:qrr[c].get('user'), attachments:qrr[c].get('attachments'), contents: qrr[c].get('contents'), likes: likesc.length, liked:liked});
+      allcomments.push({id:qrr[c].id, createdat:qrr[c].createdAt, userid:qrr[c].get('idu'), user:qrr[c].get('user'), attachments:qrr[c].get('attachments'), contents: qrr[c].get('contents'), likes: likes.length, liked:liked});
     }
     
       return allcomments
 });
 
 //PROJECTS
-Parse.Cloud.define("projects", async (request) => {
+Parse.Cloud.define("projects", async (request:any) => {
   //Loads 10 Projects each time User gets close to the bottom.
   const Projects = new Parse.Query('Projects');
   
@@ -132,7 +133,7 @@ Parse.Cloud.define("projects", async (request) => {
   
   if(results.length < 1){return 'no projects'}
   
-  let newprojects = [];
+  let newprojects:Array<object> = [];
   for(let i = 0; i < results.length; i++) {
     //It will skip the projects that already exist. i.e 10 by 10
     const summary = results[i].get('summary');
@@ -142,7 +143,7 @@ Parse.Cloud.define("projects", async (request) => {
     transactions.equalTo('project', results[i].id);
     const trx = await transactions.find(); //get each transactions
     
-    const senders = [];
+    const senders:Array<string> = [];
     let sum = 0;
     for(let fh=0;fh<trx.length;fh++){
       const each = trx[fh];
@@ -162,7 +163,7 @@ Parse.Cloud.define("projects", async (request) => {
 }
 );
 
-Parse.Cloud.define('loadproject', async (request) => {
+Parse.Cloud.define('loadproject', async (request:any) => {
   //Loads a Projects
   const Projects = new Parse.Query('Projects');
   const results = await Projects.get(request.params.id);
@@ -170,14 +171,12 @@ Parse.Cloud.define('loadproject', async (request) => {
     const contents = results.get('contents');
     const summary = results.get('summary');
     const user = results.get('user'); //A simple object with four childs
-    
-    
 
     const transactions = new Parse.Query('Transactions');
     transactions.equalTo('project', request.params.id);
-    const trx = await transactions.find(); //get each transactions
+    const trx = await transactions.find(); //get each transactions related to that project
     
-    const senders = [];
+    const senders:Array<string> = [];
     let sum = 0;
     for(let fh=0;fh<trx.length;fh++){
       const each = trx[fh];
@@ -190,22 +189,32 @@ Parse.Cloud.define('loadproject', async (request) => {
       sum+=am
     }
 
-    return {user:user, idu:results.get('idu'), deadline:results.get('deadline'), contents:contents, image:results.get('image'), backers:senders.length, funded:sum, goal:results.get('goal'), summary:summary, tags:results.get('tags')};
-
-},
-
-{
-  fields: {id:{required:true, type:String}},
-  requireUser: false
+    const users = new Parse.Query('users');
+    users.equalTo('watchlist', request.params.id);
+    const userss = await users.find();
+    
+    return {user:user, 
+      id:results.id, 
+      idu:results.get('idu'), 
+      tags:results.get('tags'), 
+      title: results.get('title'), 
+      deadline:results.get('deadline'), 
+      contents:contents, image:results.get('image'), 
+      backers:senders.length, 
+      funded:sum, 
+      goal:results.get('goal'), 
+      summary:summary, 
+      watchers:userss.length
+    };
 });
 
-Parse.Cloud.define('getTransactions', async (request) => {
+Parse.Cloud.define('getTransactions', async (request:any) => {
 
   const transactions = new Parse.Query('Transactions');
   transactions.equalTo('project', request.params.id);
   const trx = await transactions.find(); //get each transactions
   
-  const trans = [];
+  const trans:Array<object> = [];
 
   let sum = 0;
   for(let fh=0;fh<trx.length;fh++){
@@ -304,7 +313,7 @@ Parse.Cloud.define("like_comment", async request => {
 ///
 
 ///A SIMPLE CLOUD CODE TO IMPORT USERINFO
-Parse.Cloud.define('userinfo', async (request) => {
+Parse.Cloud.define('userinfo', async (request:any) => {
   //all will be returned in numbers.
   //projects created by user
   const projects = new Parse.Query('Projects');
@@ -331,20 +340,18 @@ Parse.Cloud.define('userinfo', async (request) => {
 ///USER SIMPLE QUERY
 
 
-Parse.Cloud.define('notifications', async (request) => {
+Parse.Cloud.define('notifications', async (request:any) => {
   const notif = new Parse.Query('Notifications');
   notif.equalTo('to', request.params.userSelf);
   const results = await notif.find({useMasterKey:true});
 
-  const allnotifs = [];
+  const allnotifs:Array<object> = [];
   for(let ry = 0; ry<results.length; ry++){
    allnotifs.push({message:results[ry].get('message'), type:results[ry].get('type')})
   }
 
   return allnotifs; //returns an array of objects... {message, to, type}
 });
-
-
 
 
 /////*************************************//////
@@ -354,12 +361,13 @@ Parse.Cloud.define('notifications', async (request) => {
 /////*************************************//////
 /////*************************************//////
 
-Parse.Cloud.afterSave('Posts', async (req) => {
+
+Parse.Cloud.afterSave('Posts', async (req:any) => {
   const referredTo = req.context.referredto;
   //if the post refers to a certain project, it will be linked to it, and this will notify the people watching said project.
   const users = new Parse.Query('users');
   users.containedIn('watchlist', referredTo); //select those who have the post in their watchlist
-  await users.find().then(async (the_users)=>{
+  await users.find().then(async (the_users:any)=>{
     //notify each user. fields... to=username. for=project. message=message and from:poster in html
     const message = 'A Post on this project was posted by user x';
     for(let ryu = 0; ryu<the_users.length;ryu++){
@@ -381,11 +389,11 @@ Parse.Cloud.afterSave('Posts', async (req) => {
 });
 
 
-Parse.Cloud.afterSave('Comments', async (req) => {
+Parse.Cloud.afterSave('Comments', async (req:any) => {
   const commenter = req.context.uI;
   if(req.context.comid != ''){
     const comments = new Parse.Query('Comments');
-    comments.get(req.context.comid).then((cobj)=>{
+    comments.get(req.context.comid).then((cobj:any)=>{
 
       const notifs = Parse.Object.extend('Notifications');
       const note = new notifs();
@@ -399,7 +407,7 @@ Parse.Cloud.afterSave('Comments', async (req) => {
   }
 
   const posts = new Parse.Query('Post');
-  posts.get(req.context.pid).then((obj)=>{
+  posts.get(req.context.pid).then((obj:any)=>{
     const notifs = Parse.Object.extend('Notifications');
     const note = new notifs();
 
