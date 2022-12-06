@@ -4,7 +4,6 @@ declare const Parse: any;
 import './generated/evmApi';
 import './generated/solApi';
 import { requestMessage } from '../auth/authService';
-import Moralis from 'moralis';
 
 Parse.Cloud.define('requestMessage', async ({ params }: any) => {
   const { address, chain, networkType } = params;
