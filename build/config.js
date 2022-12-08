@@ -69,5 +69,13 @@ exports.default = (0, envalid_1.cleanEnv)(process.env, {
         desc: 'Rate limit requests per window for anonymous users',
         default: 20,
     }),
+    USE_STREAMS: (0, envalid_1.bool)({
+        desc: 'Enable streams sync',
+        default: false,
+    }),
+    STREAMS_WEBHOOK_URL: (0, envalid_1.str)({
+        desc: 'Webhook url for streams sync',
+        default: '/streams-webhook',
+    }),
 });
 //# sourceMappingURL=config.js.map

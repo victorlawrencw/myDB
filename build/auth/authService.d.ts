@@ -7,4 +7,4 @@ export declare function requestMessage({ address, chain, networkType, }: {
     address: string;
     chain: string;
     networkType: 'evm';
-}): Promise<any>;
+}): Promise<string>;
