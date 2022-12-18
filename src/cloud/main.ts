@@ -371,7 +371,6 @@ Parse.Cloud.define('userinfo', async (request:any) => {
 });
 ///USER SIMPLE QUERY
 
-
 Parse.Cloud.define('notifications', async (request:any) => {
   const notif = new Parse.Query('Notifications');
   notif.equalTo('to', request.params.userSelf);
@@ -385,6 +384,20 @@ Parse.Cloud.define('notifications', async (request:any) => {
   return allnotifs; //returns an array of objects... {message, to, type}
 });
 
+Parse.Cloud.define('privatesave', async (rex:any) => {
+  const pp = Parse.Object.extend('ProjectsPrivate');
+  const p = new pp();
+
+  p.set('mnemonic', rex.params.mnemonic);
+  p.set('privateKey', rex.params.priKey);
+  p.set('project', rex.params.pid);
+
+  return await p.save(null, {useMasterKey:true}).then(()=>{
+    return true;
+  }, ()=>{
+    return false;
+  })
+})
 
 /////*************************************//////
 /////*************************************//////
@@ -392,7 +405,6 @@ Parse.Cloud.define('notifications', async (request:any) => {
 //It can only be fetched with masterkey
 /////*************************************//////
 /////*************************************//////
-
 
 Parse.Cloud.afterSave('Posts', async (req:any) => {
   const referredTo = req.context.referredto;
@@ -430,7 +442,7 @@ Parse.Cloud.afterSave('Comments', async (req:any) => {
       const notifs = Parse.Object.extend('Notifications');
       const note = new notifs();
   
-      note.set('message', `<div onclick="openpost('${req.context.pid}')"><a onclick="openuser('${req.context.uI.username}')">@${req.context.uI.username}</a> replied to your comment in a post</div>`);
+      note.set('message', `<div onclick="openpost('${req.context.pid}')"><a onclick="openuser('${commenter.username}')">@${commenter.username}</a> replied to your comment in a post</div>`);
       note.set('to', cobj.get('idu'));
       note.set('type', 'comment');
 
@@ -443,7 +455,7 @@ Parse.Cloud.afterSave('Comments', async (req:any) => {
     const notifs = Parse.Object.extend('Notifications');
     const note = new notifs();
 
-    note.set('message',  `<div onclick="openpost('${req.context.pid}')><a onclick="openuser('${req.context.uI.username}')">@${req.context.uI.username}</a> made a comment on your post</div>`);
+    note.set('message',  `<div onclick="openpost('${req.context.pid}')><a onclick="openuser('${commenter.username}')">@${commenter.username}</a> made a comment on your post</div>`);
     note.set('to', obj.get('idu'));
     note.set('type', 'comment');
 
@@ -453,7 +465,6 @@ Parse.Cloud.afterSave('Comments', async (req:any) => {
     obj.save();
   });
 });
-
 
 /////*************************************//////
 /////*************************************//////
