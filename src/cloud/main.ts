@@ -34,7 +34,7 @@ Parse.Cloud.define('getServerTime', () => {
 //USERID IS FOR FINDING USERS IN THE DATABASE, SINCE ITS UNCHANGABLE, WHILE USERNAME IS FOR PUBLIC CLIENT-SIDE SEARCHES
 //Im having some issues with limit()
 
-Parse.Cloud.define("posts", async ({request}:any) => {
+Parse.Cloud.define("posts", async (request:any) => {
     //Loads 10 Posts each time User gets close to the bottom. projects will have something similar too.
     //ALSO WE HAVE TO LOAD POSTS RELATED TO PROJECTS THE USER WAS WATCHING
   const Posts = new Parse.Query('Posts');
@@ -95,7 +95,7 @@ Parse.Cloud.define("posts", async ({request}:any) => {
 );
 
 //Main Post load.
-Parse.Cloud.define("loadcomments", async ({request}:any) => {
+Parse.Cloud.define("loadcomments", async (request:any) => {
   let allcomments:Array<object> = [];
   const qcomments = new Parse.Query("Comments");
   qcomments.equalTo("post", request.params.post);
@@ -121,7 +121,7 @@ Parse.Cloud.define("loadcomments", async ({request}:any) => {
 });
 
 //PROJECTS
-Parse.Cloud.define("projects", async ({request}:any) => {
+Parse.Cloud.define("projects", async (request:any) => {
   //Loads 10 Projects each time User gets close to the bottom.
   const Projects = new Parse.Query('Projects');
   
@@ -185,7 +185,7 @@ Parse.Cloud.define("projects", async ({request}:any) => {
 }
 );
 
-Parse.Cloud.define('loadproject', async ({request}:any) => {
+Parse.Cloud.define('loadproject', async (request:any) => {
   //Loads a Projects
   const Projects = new Parse.Query('Projects');
   const results = await Projects.get(request.params.id);
@@ -240,7 +240,7 @@ Parse.Cloud.define('loadproject', async ({request}:any) => {
     };
 });
 
-Parse.Cloud.define('allTransactions', async ({request}:any) => {
+Parse.Cloud.define('allTransactions', async (request:any) => {
 
   const transactions = new Parse.Query('Transactions');
   transactions.equalTo('project', request.params.id);
@@ -261,7 +261,7 @@ Parse.Cloud.define('allTransactions', async ({request}:any) => {
 });
 
 //AFTER A SUCCESSFUL TRANSACTION
-Parse.Cloud.define("notify", async ({info}:any) => {
+Parse.Cloud.define("notify", async (info:any) => {
   const par = info.params;
   //info.param = {project id, project name}
   //ALWAYS REMEMBER ETH IS THE CURRENCY OF WEB3

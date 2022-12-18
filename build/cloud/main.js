@@ -26,7 +26,7 @@ Parse.Cloud.define('getServerTime', () => {
 //While the Main Post need to have multiple comment based on one post. I aint stressing with showing repost(till I'm free to add other non-necessities).
 //USERID IS FOR FINDING USERS IN THE DATABASE, SINCE ITS UNCHANGABLE, WHILE USERNAME IS FOR PUBLIC CLIENT-SIDE SEARCHES
 //Im having some issues with limit()
-Parse.Cloud.define("posts", async ({ request }) => {
+Parse.Cloud.define("posts", async (request) => {
     //Loads 10 Posts each time User gets close to the bottom. projects will have something similar too.
     //ALSO WE HAVE TO LOAD POSTS RELATED TO PROJECTS THE USER WAS WATCHING
     const Posts = new Parse.Query('Posts');
@@ -85,7 +85,7 @@ Parse.Cloud.define("posts", async ({ request }) => {
     return newposts;
 });
 //Main Post load.
-Parse.Cloud.define("loadcomments", async ({ request }) => {
+Parse.Cloud.define("loadcomments", async (request) => {
     let allcomments = [];
     const qcomments = new Parse.Query("Comments");
     qcomments.equalTo("post", request.params.post);
@@ -110,7 +110,7 @@ Parse.Cloud.define("loadcomments", async ({ request }) => {
     return allcomments;
 });
 //PROJECTS
-Parse.Cloud.define("projects", async ({ request }) => {
+Parse.Cloud.define("projects", async (request) => {
     //Loads 10 Projects each time User gets close to the bottom.
     const Projects = new Parse.Query('Projects');
     if (request.params.user == undefined || request.params.user == '') {
@@ -141,7 +141,9 @@ Parse.Cloud.define("projects", async ({ request }) => {
         transactions.equalTo('project', results[i].id);
         const trx = await transactions.find(); //get each transactions
         const senders = [];
+        const eachtr = [];
         let sum = 0;
+        let sum2 = 0;
         for (let fh = 0; fh < trx.length; fh++) {
             const each = trx[fh];
             const am = each.get('amount');
@@ -150,13 +152,28 @@ Parse.Cloud.define("projects", async ({ request }) => {
             if (senders.indexOf(sender) == -1) {
                 senders.push(sender);
             }
-            sum += am;
+            if (each.get('network') == 'polygon')
+                sum += am;
+            else
+                sum2 += am;
+            eachtr.push({ sender: sender, network: each.get('network'), amount: each.get('amount') });
         }
-        newprojects.push({ id: results[i].id, idu: results[i].get('idu'), user: user, title: results[i].get('title'), image: results[i].get('image'), backers: senders.length, funded: sum, goal: results[i].get('goal'), summary: summary });
+        newprojects.push({
+            id: results[i].id,
+            idu: results[i].get('idu'),
+            user: user,
+            title: results[i].get('title'),
+            image: results[i].get('image'),
+            backers: senders.length,
+            funded: sum,
+            fundedfantom: sum2,
+            goal: results[i].get('goal'),
+            summary: summary
+        });
     }
     return newprojects;
 });
-Parse.Cloud.define('loadproject', async ({ request }) => {
+Parse.Cloud.define('loadproject', async (request) => {
     //Loads a Projects
     const Projects = new Parse.Query('Projects');
     const results = await Projects.get(request.params.id);
@@ -167,7 +184,9 @@ Parse.Cloud.define('loadproject', async ({ request }) => {
     transactions.equalTo('project', request.params.id);
     const trx = await transactions.find(); //get each transactions related to that project
     const senders = [];
+    const eachtr = [];
     let sum = 0;
+    let sum2 = 0;
     for (let fh = 0; fh < trx.length; fh++) {
         const each = trx[fh];
         const am = each.get('amount');
@@ -176,7 +195,11 @@ Parse.Cloud.define('loadproject', async ({ request }) => {
         if (senders.indexOf(sender) == -1) {
             senders.push(sender);
         }
-        sum += am;
+        if (each.get('network') == 'polygon')
+            sum += am;
+        else
+            sum2 += am;
+        eachtr.push({ sender: sender, network: each.get('network'), amount: each.get('amount') });
     }
     const users = new Parse.Query('users');
     users.equalTo('watchlist', request.params.id);
@@ -190,30 +213,30 @@ Parse.Cloud.define('loadproject', async ({ request }) => {
         contents: contents,
         image: results.get('image'),
         backers: senders.length,
+        transactions: eachtr,
         funded: sum,
+        fundedfantom: sum2,
         goal: results.get('goal'),
         summary: summary,
         watchers: userss.length
     };
 });
-Parse.Cloud.define('getTransactions', async ({ request }) => {
+Parse.Cloud.define('allTransactions', async (request) => {
     const transactions = new Parse.Query('Transactions');
     transactions.equalTo('project', request.params.id);
     const trx = await transactions.find(); //get each transactions
     const trans = [];
-    let sum = 0;
     for (let fh = 0; fh < trx.length; fh++) {
         const each = trx[fh];
         const am = each.get('amount');
         const sender = each.get('sender');
-        //this prevents duplicate cases. a case where multiple transactions belong to a single user
-        trans.push({ sender: sender, amount: am });
-        sum += am;
+        const network = each.get('network');
+        trans.push({ sender: sender, amount: am, network: network });
     }
     return trans;
 });
 //AFTER A SUCCESSFUL TRANSACTION
-Parse.Cloud.define("notify", async ({ info }) => {
+Parse.Cloud.define("notify", async (info) => {
     const par = info.params;
     //info.param = {project id, project name}
     //ALWAYS REMEMBER ETH IS THE CURRENCY OF WEB3
@@ -229,6 +252,7 @@ Parse.Cloud.define("notify", async ({ info }) => {
         const trans = new Transactions();
         trans.set('sender', username);
         trans.set('project', par.id);
+        trans.set('network', par.network);
         trans.set('amount', Number(par.amount));
         await trans.save(null, { useMasterKey: true }).then(() => {
             results.addUnique('projects_backed', par.id);
