@@ -45,9 +45,11 @@ Parse.Cloud.define("posts", async (request:any) => {
 
   Posts.descending('createdAt');
   Posts.skip(request.params.start);
-  if(request.params.user == undefined || request.params.user == '') Posts.limit(10);
+  if(request.params.user == undefined) Posts.limit(10);
   const results = await Posts.find();
 
+  return results;
+  
   if(results.length<1){
     return 'no posts'
   }
@@ -82,7 +84,7 @@ Parse.Cloud.define("posts", async (request:any) => {
     if(qrr != undefined){
 
     let likedc = '';
-    if(qrr.get('likes').indexOf(me.get('username')) > -1){likedc = 'lq'}
+    if((qrr.get('likes')).indexOf(me.get('username')) > -1){likedc = 'lq'}
     
     cdata = {idu:qrr.get('idu'), id:qrr.id, user:qrr.get('user'), contents: qrr.get('contents'), likes: qrr.get('likes').length, likedc:likedc, attachments:qrr.get('attachments')}; //comment data    
   }
