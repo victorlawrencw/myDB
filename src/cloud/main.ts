@@ -148,7 +148,10 @@ Parse.Cloud.define("projects", async ({request}:any) => {
     const trx = await transactions.find(); //get each transactions
     
     const senders:Array<string> = [];
+    const eachtr:Array<any> = [];
+
     let sum = 0;
+    let sum2 = 0;
     for(let fh=0;fh<trx.length;fh++){
       const each = trx[fh];
       const am = each.get('amount');
@@ -157,10 +160,25 @@ Parse.Cloud.define("projects", async ({request}:any) => {
       if(senders.indexOf(sender) == -1){
         senders.push(sender);
       }
-      sum+=am
+      
+      if(each.get('network') == 'polygon') sum+=am;
+      else sum2+=am
+
+      eachtr.push({sender:sender, network:each.get('network'), amount:each.get('amount')})
     }
 
-    newprojects.push({id:results[i].id, idu:results[i].get('idu'), user:user, title:results[i].get('title'), image:results[i].get('image'), backers:senders.length, funded:sum, goal:results[i].get('goal'), summary:summary});
+    newprojects.push({
+      id:results[i].id,
+      idu:results[i].get('idu'),
+      user:user,
+      title:results[i].get('title'),
+      image:results[i].get('image'),
+      backers:senders.length,
+      funded:sum,
+      fundedfantom:sum2,
+      goal:results[i].get('goal'),
+      summary:summary
+    });
   }
   
     return newprojects;
@@ -181,7 +199,10 @@ Parse.Cloud.define('loadproject', async ({request}:any) => {
     const trx = await transactions.find(); //get each transactions related to that project
     
     const senders:Array<string> = [];
+    const eachtr:Array<any> = [];
+
     let sum = 0;
+    let sum2 = 0;
     for(let fh=0;fh<trx.length;fh++){
       const each = trx[fh];
       const am = each.get('amount');
@@ -190,7 +211,11 @@ Parse.Cloud.define('loadproject', async ({request}:any) => {
       if(senders.indexOf(sender) == -1){
         senders.push(sender);
       }
-      sum+=am
+      
+      if(each.get('network') == 'polygon') sum+=am;
+      else sum2+=am
+
+      eachtr.push({sender:sender, network:each.get('network'), amount:each.get('amount')})
     }
 
     const users = new Parse.Query('users');
@@ -205,15 +230,17 @@ Parse.Cloud.define('loadproject', async ({request}:any) => {
       deadline:results.get('deadline'), 
       contents:contents,
       image:results.get('image'), 
-      backers:senders.length, 
+      backers:senders.length,
+      transactions:eachtr,
       funded:sum,
+      fundedfantom:sum2,
       goal:results.get('goal'), 
       summary:summary, 
       watchers:userss.length
     };
 });
 
-Parse.Cloud.define('getTransactions', async ({request}:any) => {
+Parse.Cloud.define('allTransactions', async ({request}:any) => {
 
   const transactions = new Parse.Query('Transactions');
   transactions.equalTo('project', request.params.id);
@@ -221,15 +248,13 @@ Parse.Cloud.define('getTransactions', async ({request}:any) => {
   
   const trans:Array<object> = [];
 
-  let sum = 0;
   for(let fh=0;fh<trx.length;fh++){
     const each = trx[fh];
     const am = each.get('amount');
     const sender = each.get('sender');
-    //this prevents duplicate cases. a case where multiple transactions belong to a single user
+    const network = each.get('network');
 
-    trans.push({sender:sender, amount:am});
-    sum+=am
+    trans.push({sender:sender, amount:am, network:network});
   }
 
   return trans
@@ -257,6 +282,7 @@ Parse.Cloud.define("notify", async ({info}:any) => {
     
     trans.set('sender', username);
     trans.set('project', par.id);
+    trans.set('network', par.network);
     trans.set('amount', Number(par.amount));
  
     await trans.save(null, {useMasterKey:true}).then(()=>{
