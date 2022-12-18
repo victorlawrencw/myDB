@@ -41,8 +41,7 @@ Parse.Cloud.define("posts", async (request) => {
     Posts.skip(request.params.start);
     if (request.params.user == undefined)
         Posts.limit(10);
-    const results = await Posts.find();
-    return results;
+    const results = await Posts.find(null, { useMasterKey: true });
     if (results.length < 1) {
         return 'no posts';
     }
@@ -98,7 +97,7 @@ Parse.Cloud.define("loadcomments", async (request) => {
     }
     const me = new Parse.Query('users');
     me.equalTo('username', request.params.me);
-    await me.first();
+    await me.first(null, { useMasterKey: true });
     //For each comment
     for (let c = 0; c < qrr.length; c++) {
         const likes = qrr[c].get('likes');
@@ -129,7 +128,7 @@ Parse.Cloud.define("projects", async (request) => {
     else
         Projects.descending('createdAt');
     Projects.skip(request.params.start);
-    const results = await Projects.find();
+    const results = await Projects.find(null, { useMasterKey: true });
     if (results.length < 1) {
         return 'no projects';
     }
