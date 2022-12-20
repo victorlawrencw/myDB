@@ -224,6 +224,7 @@ Parse.Cloud.define('loadproject', async (request:any) => {
     
     return {user:user, 
       id:results.id,
+      createdAt:results.createdAt,
       idu:results.get('idu'), 
       tags:results.get('tags'), 
       title: results.get('title'), 
